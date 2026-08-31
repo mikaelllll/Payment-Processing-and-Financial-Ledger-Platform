@@ -9,14 +9,23 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import (
+    ApiKey,
     AuditEvent,
+    Dispute,
+    FraudRule,
     LedgerEntry,
     Merchant,
     OutboxEvent,
     Payment,
     PaymentStatus,
+    Processor,
+    ReconciliationCase,
     Refund,
+    RiskCase,
+    Settlement,
     SimulationRun,
+    WebhookDelivery,
+    WebhookEndpoint,
     new_id,
 )
 from .schemas import PaymentCreate, SimulationStep
@@ -291,6 +300,19 @@ async def create_payment(
         outcome = "recovered_without_duplicate"
     elif payload.scenario == "high_risk":
         payment.status = PaymentStatus.AUTHORIZED
+        session.add(
+            RiskCase(
+                id=new_id("risk"),
+                payment_id=payment.id,
+                score=82,
+                status="pending",
+                signals=[
+                    "Transaction amount exceeds new-customer threshold",
+                    "Three declines observed in the previous ten minutes",
+                    "Billing location differs from recent profile",
+                ],
+            )
+        )
         steps += [
             step(
                 "review",
@@ -562,6 +584,15 @@ async def seed_demo(session: AsyncSession, size: str, reset: bool) -> dict:
             AuditEvent,
             SimulationRun,
             OutboxEvent,
+            WebhookDelivery,
+            WebhookEndpoint,
+            ApiKey,
+            ReconciliationCase,
+            Dispute,
+            RiskCase,
+            Settlement,
+            FraudRule,
+            Processor,
             LedgerEntry,
             Refund,
             Payment,
@@ -633,6 +664,63 @@ async def seed_demo(session: AsyncSession, size: str, reset: bool) -> dict:
                     [("merchant_payable", amount, 0), ("processor_refund_payable", 0, amount)],
                 )
         created += 1
+    from .operations import seed_operations
+
+    await seed_operations(session)
+    await session.flush()
+
+    captured_payment = await session.scalar(
+        select(Payment)
+        .where(Payment.status == PaymentStatus.CAPTURED)
+        .order_by(Payment.created_at.desc())
+        .limit(1)
+    )
+    if captured_payment and not await session.scalar(select(Dispute.id).limit(1)):
+        dispute_amount = min(captured_payment.captured_amount, 5_000)
+        session.add(
+            Dispute(
+                id=new_id("dp"),
+                payment_id=captured_payment.id,
+                merchant_id=captured_payment.merchant_id,
+                amount=dispute_amount,
+                reason="product_not_received",
+                status="needs_response",
+                evidence=[],
+                due_at=datetime.now(UTC) + timedelta(days=7),
+            )
+        )
+        await post_balanced_entries(
+            session,
+            captured_payment,
+            "Dispute reserve",
+            [
+                ("merchant_payable", dispute_amount, 0),
+                ("dispute_reserve", 0, dispute_amount),
+            ],
+        )
+    if captured_payment and not await session.scalar(select(ReconciliationCase.id).limit(1)):
+        session.add_all(
+            [
+                ReconciliationCase(
+                    id=new_id("rec"),
+                    payment_id=captured_payment.id,
+                    processor=captured_payment.processor,
+                    case_type="status_mismatch",
+                    internal_amount=captured_payment.amount,
+                    processor_amount=captured_payment.amount,
+                    status="open",
+                ),
+                ReconciliationCase(
+                    id=new_id("rec"),
+                    payment_id=None,
+                    processor="fast_card",
+                    case_type="processor_only_transaction",
+                    internal_amount=0,
+                    processor_amount=12_500,
+                    status="open",
+                ),
+            ]
+        )
     await session.commit()
     return {"created": created, "requested": count, "size": size, "reset": reset}
 
@@ -661,9 +749,7 @@ async def dashboard(session: AsyncSession) -> dict:
     ).all()
     activity_start = datetime.now(UTC) - timedelta(days=9)
     activity_payments = (
-        await session.scalars(
-            select(Payment).where(Payment.created_at >= activity_start)
-        )
+        await session.scalars(select(Payment).where(Payment.created_at >= activity_start))
     ).all()
     activity_by_date: dict[str, dict[str, int | str]] = {}
     for payment in activity_payments:
