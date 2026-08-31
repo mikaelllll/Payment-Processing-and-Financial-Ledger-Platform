@@ -57,6 +57,19 @@ class SeedRequest(BaseModel):
     reset: bool = False
 
 
+class ActionRequest(BaseModel):
+    action: str
+    amount: int | None = Field(default=None, gt=0)
+    note: str | None = Field(default=None, max_length=500)
+    idempotency_key: str | None = Field(default=None, max_length=120)
+
+
+class ResourceCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=120)
+    value: str = Field(min_length=1, max_length=500)
+    action: str | None = Field(default=None, max_length=40)
+
+
 class RoleContext(BaseModel):
     role: Literal[
         "merchant_owner", "merchant_developer", "operations_admin", "risk_analyst", "auditor"
