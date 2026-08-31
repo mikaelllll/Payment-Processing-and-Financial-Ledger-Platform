@@ -2,7 +2,11 @@
   "name": "LedgerFlow Payment Platform",
   "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
   "features": {
-    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12",
+      "installTools": false
+    }
   },
   "forwardPorts": [3000, 8000],
   "portsAttributes": {
@@ -17,4 +21,3 @@
     }
   }
 }
-
