@@ -140,3 +140,152 @@ class OutboxEvent(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class RiskCase(Base):
+    __tablename__ = "risk_cases"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    payment_id: Mapped[str] = mapped_column(ForeignKey("payments.id"), unique=True, nullable=False)
+    score: Mapped[int] = mapped_column(nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    signals: Mapped[list] = mapped_column(JSON, default=list)
+    resolution_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class FraudRule(Base):
+    __tablename__ = "fraud_rules"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    field: Mapped[str] = mapped_column(String(60), nullable=False)
+    operator: Mapped[str] = mapped_column(String(30), nullable=False)
+    threshold: Mapped[str] = mapped_column(String(120), nullable=False)
+    action: Mapped[str] = mapped_column(String(30), nullable=False)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class Settlement(Base):
+    __tablename__ = "settlements"
+    __table_args__ = (
+        UniqueConstraint("merchant_id", "idempotency_key", name="uq_settlement_idempotency"),
+    )
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    merchant_id: Mapped[str] = mapped_column(ForeignKey("merchants.id"), nullable=False)
+    amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(120), nullable=False)
+    bank_reference: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    failure_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Dispute(Base):
+    __tablename__ = "disputes"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    payment_id: Mapped[str] = mapped_column(ForeignKey("payments.id"), nullable=False)
+    merchant_id: Mapped[str] = mapped_column(ForeignKey("merchants.id"), nullable=False)
+    amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    reason: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="needs_response", index=True)
+    evidence: Mapped[list] = mapped_column(JSON, default=list)
+    due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Processor(Base):
+    __tablename__ = "processors"
+
+    id: Mapped[str] = mapped_column(String(40), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    health: Mapped[str] = mapped_column(String(24), default="healthy")
+    success_rate: Mapped[int] = mapped_column(default=99)
+    latency_ms: Mapped[int] = mapped_column(default=300)
+    fee_bps: Mapped[int] = mapped_column(default=300)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    currencies: Mapped[list] = mapped_column(JSON, default=list)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
+
+
+class ReconciliationCase(Base):
+    __tablename__ = "reconciliation_cases"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    payment_id: Mapped[str | None] = mapped_column(ForeignKey("payments.id"), nullable=True)
+    processor: Mapped[str] = mapped_column(String(40), nullable=False)
+    case_type: Mapped[str] = mapped_column(String(40), nullable=False)
+    internal_amount: Mapped[int] = mapped_column(BigInteger, default=0)
+    processor_amount: Mapped[int] = mapped_column(BigInteger, default=0)
+    status: Mapped[str] = mapped_column(String(24), default="open", index=True)
+    resolution: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class WebhookEndpoint(Base):
+    __tablename__ = "webhook_endpoints"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    merchant_id: Mapped[str] = mapped_column(ForeignKey("merchants.id"), nullable=False)
+    url: Mapped[str] = mapped_column(String(500), nullable=False)
+    secret_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    secret_last4: Mapped[str] = mapped_column(String(4), nullable=False)
+    enabled: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class WebhookDelivery(Base):
+    __tablename__ = "webhook_deliveries"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    endpoint_id: Mapped[str] = mapped_column(ForeignKey("webhook_endpoints.id"), nullable=False)
+    event_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    response_code: Mapped[int | None] = mapped_column(nullable=True)
+    attempts: Mapped[int] = mapped_column(default=0)
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True)
+    merchant_id: Mapped[str] = mapped_column(ForeignKey("merchants.id"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    key_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    key_last4: Mapped[str] = mapped_column(String(4), nullable=False)
+    scopes: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(20), default="active")
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
