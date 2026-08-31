@@ -29,10 +29,13 @@ docker compose logs --tail=100 api worker
 ## What you can test
 
 - Switch between Merchant owner, Merchant developer, Operations administrator, Risk analyst, and Auditor perspectives.
+- Use a genuinely different operational workspace for every role rather than a shared dashboard with cosmetic labels.
 - Generate small, medium, or large deterministic datasets with one click.
 - Run successful, declined, high-risk, pre-submission failure, and ambiguous-timeout payments.
 - Replay a successful request with the same idempotency key and observe that no second charge or ledger transaction is created.
 - Inspect the exact debit and credit entries behind captured and refunded payments.
+- Capture authorizations, create settlements, simulate bank outcomes, submit dispute evidence, resolve risk reviews and reconcile processor exceptions.
+- Create and revoke hashed API keys, configure signed webhook endpoints and replay failed deliveries.
 - Explore API contracts interactively in Swagger UI.
 
 Every simulation presents an animated execution trace covering authentication, validation, idempotency, fraud rules, processor routing, uncertainty classification, recovery, accounting, and transactional event delivery.
@@ -67,6 +70,7 @@ Money is stored as integer minor units. Financial entries are append-only and ac
 | [Operations and Codespaces](docs/OPERATIONS.md) | Startup, service health, database reset and troubleshooting |
 | [Security model](docs/SECURITY.md) | Demo boundaries, threat model, secret handling and production gaps |
 | [Testing strategy](docs/TESTING.md) | Financial invariants, failure paths, CI and local commands |
+| [Role workflows](docs/ROLE_WORKFLOWS.md) | Complete capabilities and operational journeys for all five perspectives |
 
 ## Technology stack
 
@@ -104,4 +108,3 @@ LedgerFlow demonstrates production-oriented patterns but is not certified or sui
 ## License
 
 Released under the [MIT License](LICENSE).
-
