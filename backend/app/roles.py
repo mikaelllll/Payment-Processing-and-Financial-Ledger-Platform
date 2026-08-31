@@ -4,12 +4,30 @@ ROLES = {
     "merchant_owner": {
         "label": "Merchant owner",
         "description": "Business overview, payments, refunds, balances and settlements.",
-        "permissions": ["payments:read", "payments:create", "refunds:create", "settlements:read"],
+        "permissions": [
+            "payments:read",
+            "payments:create",
+            "payments:capture",
+            "refunds:create",
+            "settlements:read",
+            "settlements:create",
+            "disputes:read",
+            "disputes:evidence",
+            "webhooks:read",
+            "api_keys:read",
+        ],
     },
     "merchant_developer": {
         "label": "Merchant developer",
         "description": "API integrations, idempotency, events and webhook delivery diagnostics.",
-        "permissions": ["payments:read", "payments:create", "webhooks:read", "api_keys:read"],
+        "permissions": [
+            "payments:read",
+            "payments:create",
+            "webhooks:read",
+            "webhooks:write",
+            "api_keys:read",
+            "api_keys:write",
+        ],
     },
     "operations_admin": {
         "label": "Operations administrator",
@@ -19,7 +37,13 @@ ROLES = {
     "risk_analyst": {
         "label": "Risk analyst",
         "description": "Fraud signals, manual reviews and disputes without merchant secrets.",
-        "permissions": ["payments:read", "risk:review", "disputes:manage"],
+        "permissions": [
+            "payments:read",
+            "risk:review",
+            "risk:rules",
+            "disputes:read",
+            "disputes:manage",
+        ],
     },
     "auditor": {
         "label": "Read-only auditor",
