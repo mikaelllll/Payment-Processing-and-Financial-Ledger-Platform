@@ -14,7 +14,8 @@
     "8000": { "label": "LedgerFlow API", "onAutoForward": "silent" }
   },
   "postCreateCommand": "bash .devcontainer/setup.sh",
-  "postStartCommand": "docker compose up -d",
+  "postStartCommand": "bash .devcontainer/ensure-running.sh",
+  "postAttachCommand": "bash .devcontainer/ensure-running.sh",
   "customizations": {
     "vscode": {
       "extensions": ["ms-python.python", "charliermarsh.ruff", "dbaeumer.vscode-eslint", "ms-azuretools.vscode-docker"]
