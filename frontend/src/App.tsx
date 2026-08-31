@@ -25,6 +25,7 @@ function App() {
   const [seedOpen, setSeedOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [notice, setNotice] = useState('')
 
   const load = useCallback(async () => {
@@ -33,10 +34,40 @@ function App() {
   }, [role])
   useEffect(() => { void load() }, [load])
 
+  const refresh = async () => {
+    setRefreshing(true)
+    try {
+      await load()
+      setNotice(`Dashboard refreshed at ${new Date().toLocaleTimeString()}.`)
+    } catch {
+      setNotice('Dashboard refresh failed. Check the API service and try again.')
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   const chartData = useMemo(() => {
     if (!data) return []
-    const buckets = Array.from({ length: 10 }, (_, index) => ({ name: `${9 - index}d`, volume: 0, payments: 0 })).reverse()
-    data.payments.forEach((payment, index) => { const target = buckets[index % buckets.length]; target.volume += payment.captured_amount / 100; target.payments += 1 })
+    const today = new Date()
+    today.setUTCHours(0, 0, 0, 0)
+    const buckets = Array.from({ length: 10 }, (_, index) => {
+      const date = new Date(today)
+      date.setUTCDate(today.getUTCDate() - (9 - index))
+      return {
+        key: date.toISOString().slice(0, 10),
+        name: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }),
+        volume: 0,
+        payments: 0,
+      }
+    })
+    const byDate = new Map(buckets.map(bucket => [bucket.key, bucket]))
+    data.activity.forEach(day => {
+      const bucket = byDate.get(day.date)
+      if (bucket) {
+        bucket.volume = day.volume / 100
+        bucket.payments = day.payments
+      }
+    })
     return buckets
   }, [data])
 
@@ -74,7 +105,7 @@ function App() {
           <article><div className="metric-label">Ledger proof <Tooltip text="A global invariant check comparing every debit with every credit across immutable journal entries."/></div><strong className="proof-value">{metrics?.ledger_balanced ? 'Balanced' : 'Checking'}</strong><span>{metrics ? `${currency(metrics.ledger_debits)} each side` : 'Loading journal'}</span></article>
         </section>
         <section className="dashboard-grid">
-          <article className="chart-card"><header><div><span className="eyebrow">Captured volume</span><h2>Payment activity</h2></div><button className="icon-button" onClick={load} aria-label="Refresh"><RefreshCw size={17}/></button></header><div className="chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="volume" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5ce1c5" stopOpacity={.36}/><stop offset="100%" stopColor="#5ce1c5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#253147" vertical={false}/><XAxis dataKey="name" stroke="#6f7f99" axisLine={false} tickLine={false}/><YAxis stroke="#6f7f99" axisLine={false} tickLine={false}/><ChartTooltip contentStyle={{background:'#111a2b',border:'1px solid #2d3a52',borderRadius:10}}/><Area type="monotone" dataKey="volume" stroke="#5ce1c5" fill="url(#volume)" strokeWidth={2}/></AreaChart></ResponsiveContainer></div></article>
+          <article className="chart-card"><header><div><span className="eyebrow">Captured volume · last 10 days</span><h2>Payment activity</h2></div><button className="icon-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing dashboard' : 'Refresh dashboard'} title="Reload dashboard data"><RefreshCw className={refreshing ? 'spinning' : ''} size={17}/></button></header><div className="chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="volume" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5ce1c5" stopOpacity={.36}/><stop offset="100%" stopColor="#5ce1c5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#253147" vertical={false}/><XAxis dataKey="name" stroke="#6f7f99" axisLine={false} tickLine={false}/><YAxis stroke="#6f7f99" axisLine={false} tickLine={false} tickFormatter={value => currency(value * 100)}/><ChartTooltip formatter={(value) => [currency(Number(value) * 100), 'Captured volume']} contentStyle={{background:'#111a2b',border:'1px solid #2d3a52',borderRadius:10}}/><Area type="monotone" dataKey="volume" stroke="#5ce1c5" fill="url(#volume)" strokeWidth={2}/></AreaChart></ResponsiveContainer></div></article>
           <article className="role-card"><span className="eyebrow">Access perspective</span><h2>{currentRole.label}</h2><p>{currentRole.short}</p><div className="role-list">{roles.map(item => <button className={role === item.value ? 'selected' : ''} onClick={() => setRole(item.value)} key={item.value}><span>{item.label}</span><small>{item.short}</small></button>)}</div></article>
         </section>
         <div id="simulation"><PaymentLab role={role} onComplete={load}/></div>
@@ -88,4 +119,3 @@ function App() {
 }
 
 export default App
-
