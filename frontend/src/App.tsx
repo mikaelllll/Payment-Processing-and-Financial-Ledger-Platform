@@ -5,6 +5,7 @@ import { api } from './lib/api'
 import type { DashboardData, Payment, Role } from './types'
 import { LedgerDrawer } from './components/LedgerDrawer'
 import { PaymentLab } from './components/PaymentLab'
+import { RoleWorkspace } from './components/RoleWorkspace'
 import { Tooltip } from './components/Tooltip'
 
 const roles: { value: Role; label: string; short: string }[] = [
@@ -86,6 +87,7 @@ function App() {
       <div className="brand"><div className="brand-mark"><Landmark size={21}/></div><div><strong>LedgerFlow</strong><span>Payment infrastructure</span></div><button className="mobile-close" onClick={() => setMenuOpen(false)}><X/></button></div>
       <nav>
         <a className="active" href="#overview"><LayoutDashboard/>Overview</a>
+        <a href="#workspace"><Users/>Role workspace</a>
         <a href="#simulation"><Activity/>Failure laboratory</a>
         <a href="#payments"><WalletCards/>Payments</a>
         <a href="#architecture"><Boxes/>Architecture</a>
@@ -108,6 +110,7 @@ function App() {
           <article className="chart-card"><header><div><span className="eyebrow">Captured volume · last 10 days</span><h2>Payment activity</h2></div><button className="icon-button" onClick={refresh} disabled={refreshing} aria-label={refreshing ? 'Refreshing dashboard' : 'Refresh dashboard'} title="Reload dashboard data"><RefreshCw className={refreshing ? 'spinning' : ''} size={17}/></button></header><div className="chart"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chartData}><defs><linearGradient id="volume" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#5ce1c5" stopOpacity={.36}/><stop offset="100%" stopColor="#5ce1c5" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="#253147" vertical={false}/><XAxis dataKey="name" stroke="#6f7f99" axisLine={false} tickLine={false}/><YAxis stroke="#6f7f99" axisLine={false} tickLine={false} tickFormatter={value => currency(value * 100)}/><ChartTooltip formatter={(value) => [currency(Number(value) * 100), 'Captured volume']} contentStyle={{background:'#111a2b',border:'1px solid #2d3a52',borderRadius:10}}/><Area type="monotone" dataKey="volume" stroke="#5ce1c5" fill="url(#volume)" strokeWidth={2}/></AreaChart></ResponsiveContainer></div></article>
           <article className="role-card"><span className="eyebrow">Access perspective</span><h2>{currentRole.label}</h2><p>{currentRole.short}</p><div className="role-list">{roles.map(item => <button className={role === item.value ? 'selected' : ''} onClick={() => setRole(item.value)} key={item.value}><span>{item.label}</span><small>{item.short}</small></button>)}</div></article>
         </section>
+        <RoleWorkspace role={role} refreshDashboard={load}/>
         <div id="simulation"><PaymentLab role={role} onComplete={load}/></div>
         <section className="table-card" id="payments"><header><div><span className="eyebrow">Operational record</span><h2>Recent payments</h2></div><span>{data?.payments.length ?? 0} visible records</span></header><div className="payments-table"><div className="payment-row header"><span>Payment</span><span>Customer</span><span>Processor</span><span>Status</span><span>Amount</span><span/></div>{data?.payments.map(payment => <div className="payment-row" key={payment.id}><span><strong>{payment.id}</strong><small>{new Date(payment.created_at).toLocaleString()}</small></span><span>{payment.customer_reference}</span><span>{payment.processor.replace('_', ' ')}</span><span><i className={`status ${payment.status}`}>{payment.status.replaceAll('_', ' ')}</i></span><span><strong>{currency(payment.amount)}</strong><small>{payment.currency}</small></span><span><button onClick={() => setSelectedPayment(payment)}>View ledger</button></span></div>)}</div>{!loading && !data?.payments.length && <div className="empty-state">Generate deterministic demo data or run a payment scenario.</div>}</section>
         <section className="architecture-card" id="architecture"><div><span className="eyebrow">System boundaries</span><h2>Built for correctness under failure</h2><p>The platform keeps orchestration, accounting, external processor behavior and asynchronous delivery explicit. Service boundaries follow different consistency requirements—not visual complexity.</p></div><div className="architecture-flow"><div><Sparkles/><strong>Merchant API</strong><span>Validation + idempotency</span></div><b>→</b><div><Shield/><strong>Orchestrator</strong><span>Risk + routing + recovery</span></div><b>→</b><div><Landmark/><strong>Ledger</strong><span>Immutable balanced journal</span></div></div></section>
