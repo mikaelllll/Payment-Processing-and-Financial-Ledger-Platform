@@ -11,4 +11,4 @@ flock 9
 
 echo "Starting LedgerFlow services…"
 docker compose up --build --detach --wait
-echo "LedgerFlow is ready. Run: bash .devcontainer/show-url.sh"
+bash .devcontainer/show-url.sh --open
