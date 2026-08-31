@@ -4,7 +4,7 @@
 
 The dev container installs Docker support and executes `.devcontainer/setup.sh`. Docker Compose builds and health-checks PostgreSQL, Redis, API, worker and frontend. Subsequent Codespace starts run `docker compose up -d`.
 
-The setup deliberately does not open a browser. Print the correct forwarded URLs at any time:
+Once every Compose health check passes, startup prints the correct forwarded URLs and attempts to open the frontend. Print the URLs again at any time with:
 
 ```bash
 bash .devcontainer/show-url.sh
@@ -35,4 +35,3 @@ docker compose up --build --detach --wait
 ```
 
 This removes only Docker volumes declared by this project.
-
