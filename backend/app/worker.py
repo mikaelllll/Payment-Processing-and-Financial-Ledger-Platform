@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from .config import settings
 from .database import SessionLocal
-from .models import OutboxEvent
+from .models import OutboxEvent, WebhookDelivery, WebhookEndpoint, new_id
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("ledgerflow.worker")
@@ -38,6 +38,23 @@ async def dispatch_batch(redis: Redis) -> int:
             )
             event.status = "delivered"
             event.processed_at = datetime.now(UTC)
+            endpoints = (
+                await session.scalars(
+                    select(WebhookEndpoint).where(WebhookEndpoint.enabled.is_(True))
+                )
+            ).all()
+            for endpoint in endpoints:
+                session.add(
+                    WebhookDelivery(
+                        id=new_id("wd"),
+                        endpoint_id=endpoint.id,
+                        event_id=event.id,
+                        event_type=event.event_type,
+                        status="delivered",
+                        response_code=200,
+                        attempts=1,
+                    )
+                )
         await session.commit()
         return len(events)
 
