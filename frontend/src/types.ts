@@ -32,6 +32,6 @@ export interface SimulationResult {
 export interface DashboardData {
   metrics: { payments: number; captured: number; failed: number; volume: number; ledger_balanced: boolean; ledger_debits: number; ledger_credits: number }
   payments: Payment[]
+  activity: { date: string; volume: number; payments: number }[]
   role: Role
 }
-
