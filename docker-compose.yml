@@ -1,0 +1,71 @@
+name: ledgerflow
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ledgerflow
+      POSTGRES_USER: ledgerflow
+      POSTGRES_PASSWORD: ledgerflow_local_only
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ledgerflow -d ledgerflow"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  redis:
+    image: redis:8-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://ledgerflow:ledgerflow_local_only@postgres:5432/ledgerflow
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: codespaces
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 8s
+      timeout: 4s
+      retries: 12
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: python -m app.worker
+    environment:
+      DATABASE_URL: postgresql+asyncpg://ledgerflow:ledgerflow_local_only@postgres:5432/ledgerflow
+      REDIS_URL: redis://redis:6379/0
+      ENVIRONMENT: codespaces
+    depends_on:
+      api: { condition: service_healthy }
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    depends_on:
+      api: { condition: service_healthy }
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
