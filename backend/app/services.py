@@ -659,6 +659,20 @@ async def dashboard(session: AsyncSession) -> dict:
     payments = (
         await session.scalars(select(Payment).order_by(Payment.created_at.desc()).limit(25))
     ).all()
+    activity_start = datetime.now(UTC) - timedelta(days=9)
+    activity_payments = (
+        await session.scalars(
+            select(Payment).where(Payment.created_at >= activity_start)
+        )
+    ).all()
+    activity_by_date: dict[str, dict[str, int | str]] = {}
+    for payment in activity_payments:
+        date_key = payment.created_at.date().isoformat()
+        bucket = activity_by_date.setdefault(
+            date_key, {"date": date_key, "volume": 0, "payments": 0}
+        )
+        bucket["volume"] = int(bucket["volume"]) + payment.captured_amount
+        bucket["payments"] = int(bucket["payments"]) + 1
     debits, credits = (
         await session.execute(
             select(
@@ -678,4 +692,5 @@ async def dashboard(session: AsyncSession) -> dict:
             "ledger_credits": credits,
         },
         "payments": payments,
+        "activity": list(activity_by_date.values()),
     }
