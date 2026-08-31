@@ -7,7 +7,13 @@ def headers(role: str) -> dict[str, str]:
 
 def test_every_role_receives_a_distinct_workspace(client: TestClient):
     expected = {
-        "merchant_owner": {"available_balance", "settlements", "disputes", "authorized_payments"},
+        "merchant_owner": {
+            "available_balance",
+            "settlements",
+            "disputes",
+            "authorized_payments",
+            "refundable_payments",
+        },
         "merchant_developer": {"webhook_endpoints", "deliveries", "api_keys", "request_traces"},
         "operations_admin": {"processors", "recovery_queue", "reconciliation", "pending_outbox"},
         "risk_analyst": {"risk_cases", "fraud_rules", "disputes"},
@@ -36,6 +42,12 @@ def test_high_risk_review_can_be_approved_then_captured(client: TestClient):
     assert payment["status"] == "authorized"
     workspace = client.get("/api/workspace", headers=headers("risk_analyst")).json()
     case = next(item for item in workspace["risk_cases"] if item["payment_id"] == payment["id"])
+    held_capture = client.post(
+        f"/api/payments/{payment['id']}/capture",
+        headers=headers("merchant_owner"),
+        json={"action": "capture"},
+    )
+    assert held_capture.status_code == 409
     decision = client.post(
         f"/api/risk-cases/{case['id']}/decision",
         headers=headers("risk_analyst"),
@@ -134,3 +146,14 @@ def test_operations_controls_are_not_available_to_merchants(client: TestClient):
         json={"action": "offline"},
     )
     assert changed.json()["resource"]["health"] == "offline"
+
+
+def test_risk_analyst_can_toggle_rules_with_auditability(client: TestClient):
+    workspace = client.get("/api/workspace", headers=headers("risk_analyst")).json()
+    rule = workspace["fraud_rules"][0]
+    response = client.post(
+        f"/api/fraud-rules/{rule['id']}/toggle",
+        headers=headers("risk_analyst"),
+    )
+    assert response.status_code == 200
+    assert response.json()["resource"]["enabled"] is (not rule["enabled"])
