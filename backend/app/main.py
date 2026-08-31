@@ -24,6 +24,7 @@ from .models import (
     SimulationRun,
     WebhookDelivery,
     WebhookEndpoint,
+    new_id,
 )
 from .operations import (
     capture_payment,
@@ -223,12 +224,23 @@ async def workspace(
         authorized = [
             payment for payment in authorized if payment.id not in pending_risk_payment_ids
         ]
+        refundable = (
+            await session.scalars(
+                select(Payment)
+                .where(
+                    Payment.status.in_([PaymentStatus.CAPTURED, PaymentStatus.PARTIALLY_REFUNDED])
+                )
+                .order_by(Payment.created_at.desc())
+                .limit(20)
+            )
+        ).all()
         base.update(
             {
                 "available_balance": await merchant_balance(session),
                 "settlements": [serialize_model(x) for x in settlements],
                 "disputes": [serialize_model(x) for x in disputes],
                 "authorized_payments": [serialize_model(x) for x in authorized],
+                "refundable_payments": [serialize_model(x) for x in refundable],
             }
         )
     elif role == "merchant_developer":
@@ -355,6 +367,43 @@ async def risk_decision(
     require_permission(role, "risk:review")
     case, steps = await resolve_risk(session, case_id, payload.action, payload.note or "", role)
     return {"resource": serialize_model(case), "steps": steps}
+
+
+@app.post("/api/fraud-rules/{rule_id}/toggle")
+async def toggle_fraud_rule(
+    rule_id: str,
+    role: str = Depends(current_role),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    require_permission(role, "risk:rules")
+    rule = await session.get(FraudRule, rule_id)
+    if not rule:
+        raise HTTPException(404, "Fraud rule not found")
+    rule.enabled = not rule.enabled
+    session.add(
+        AuditEvent(
+            id=new_id("aud"),
+            actor_role=role,
+            action="fraud_rule.toggled",
+            resource_type="fraud_rule",
+            resource_id=rule.id,
+            details={"enabled": rule.enabled},
+        )
+    )
+    await session.commit()
+    return {
+        "resource": serialize_model(rule),
+        "steps": [
+            step(
+                "version",
+                "Rule state versioned",
+                "New evaluations use the updated state; previous decisions remain explainable.",
+                "success",
+                18,
+                str(rule.enabled),
+            )
+        ],
+    }
 
 
 @app.post("/api/settlements")
