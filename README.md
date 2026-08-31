@@ -9,15 +9,14 @@ The project is intentionally **not connected to real payment methods or money**.
 1. Select **Code → Codespaces → Create codespace on main**.
 2. If GitHub asks whether you trust the repository, accept it and wait for the terminal to become available.
 3. The dev container automatically builds and starts PostgreSQL, Redis, the API, outbox worker, and frontend. No manual installation is required.
-4. When setup finishes—or if its initial terminal message was missed—run:
+4. After every service passes its health check, the terminal prints the complete frontend URL and attempts to open it automatically.
+5. If the browser did not open, Ctrl+click the printed URL. If its initial terminal message was missed, print it again with:
 
    ```bash
    bash .devcontainer/show-url.sh
    ```
 
-5. Open the printed **LedgerFlow frontend** URL. The application runs on forwarded port `3000`; API documentation is available through the printed `/api/docs` URL.
-
-The page is deliberately not opened automatically. Codespaces may execute setup before the user has accepted the repository trust prompt or before an interactive terminal is visible. The command above lets the visitor print the correct URL whenever they are ready.
+The application runs on forwarded port `3000`; API documentation is available through the printed `/api/docs` URL. Codespaces can finish its startup hook before a browser session is attached, so the manual command remains the reliable fallback.
 
 To inspect service health:
 
