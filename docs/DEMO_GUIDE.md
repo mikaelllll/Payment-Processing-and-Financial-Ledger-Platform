@@ -4,11 +4,11 @@ The role selector intentionally changes permissions and perspective without requ
 
 | Role | Primary perspective |
 |---|---|
-| Merchant owner | Create payments, issue refunds and inspect business balances |
-| Merchant developer | Diagnose idempotency, processor decisions and integration delivery |
-| Operations administrator | View all infrastructure behavior, recovery and seed controls |
-| Risk analyst | Observe high-risk decisions without permission to create charges |
-| Auditor | Read ledger and audit evidence without mutating financial state |
+| Merchant owner | Payments, manual capture, refunds, derived balances, settlements, payouts and dispute evidence |
+| Merchant developer | API credentials, endpoints, signed deliveries, replay and execution diagnostics |
+| Operations administrator | Processor routing health, recovery, settlement outcomes, reconciliation and outbox health |
+| Risk analyst | Explainable review decisions, fraud rules, disputes and chargeback outcomes |
+| Auditor | Global ledger proof, transaction evidence and actor-attributed audit history |
 
 ## Recommended walkthrough
 
@@ -17,7 +17,10 @@ The role selector intentionally changes permissions and perspective without requ
 3. Select **Replay same idempotency key** and confirm the trace bypasses processor and accounting work.
 4. Run **Ambiguous timeout** and observe why the system queries the original processor instead of falling back.
 5. Run **Definitive decline** and confirm no ledger movement exists.
-6. Switch to Auditor and confirm payment creation is disabled while journal inspection remains available.
+6. Approve a high-risk payment as Risk analyst, switch to Merchant owner and capture it.
+7. Create a settlement as Merchant owner, then complete or fail/retry it as Operations administrator.
+8. Create a webhook and API key as Merchant developer; replay the seeded failed delivery.
+9. Submit dispute evidence as Merchant owner and decide the case as Risk analyst.
+10. Switch to Auditor and confirm every resulting debit and credit remains balanced.
 
 Simulation latency is presented as recorded trace metadata; the interface animates the steps for comprehension rather than intentionally delaying backend requests.
-
