@@ -21,6 +21,7 @@ export const api = {
   workspace: (role: Role) => request<Record<string, unknown>>('/api/workspace', role),
   capture: (role: Role, paymentId: string, amount?: number) => request<Record<string, unknown>>(`/api/payments/${paymentId}/capture`, role, { method: 'POST', body: JSON.stringify({ action: 'capture', amount }) }),
   riskDecision: (role: Role, caseId: string, action: string, note: string) => request<Record<string, unknown>>(`/api/risk-cases/${caseId}/decision`, role, { method: 'POST', body: JSON.stringify({ action, note }) }),
+  toggleFraudRule: (role: Role, id: string) => request<Record<string, unknown>>(`/api/fraud-rules/${id}/toggle`, role, { method: 'POST' }),
   createSettlement: (role: Role, amount: number) => request<Record<string, unknown>>('/api/settlements', role, { method: 'POST', body: JSON.stringify({ action: 'create', amount, idempotency_key: `settlement-${Date.now()}` }) }),
   settlementAction: (role: Role, id: string, action: string) => request<Record<string, unknown>>(`/api/settlements/${id}/action`, role, { method: 'POST', body: JSON.stringify({ action }) }),
   disputeAction: (role: Role, id: string, action: string, note: string) => request<Record<string, unknown>>(`/api/disputes/${id}/action`, role, { method: 'POST', body: JSON.stringify({ action, note }) }),
