@@ -25,6 +25,7 @@ function App() {
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [seedOpen, setSeedOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('overview')
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [notice, setNotice] = useState('')
@@ -34,6 +35,31 @@ function App() {
     try { setData(await api.dashboard(role)) } finally { setLoading(false) }
   }, [role])
   useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    const sectionIds = ['overview', 'workspace', 'simulation', 'payments', 'architecture']
+    const updateActiveSection = () => {
+      const marker = window.scrollY + Math.min(220, window.innerHeight * 0.3)
+      let current = sectionIds[0]
+      for (const id of sectionIds) {
+        const section = document.getElementById(id)
+        if (section && section.offsetTop <= marker) current = id
+      }
+      setActiveSection(current)
+    }
+    updateActiveSection()
+    window.addEventListener('scroll', updateActiveSection, { passive: true })
+    window.addEventListener('resize', updateActiveSection)
+    return () => {
+      window.removeEventListener('scroll', updateActiveSection)
+      window.removeEventListener('resize', updateActiveSection)
+    }
+  }, [])
+
+  const navigationProps = (section: string) => ({
+    className: activeSection === section ? 'active' : undefined,
+    'aria-current': activeSection === section ? ('location' as const) : undefined,
+    onClick: () => { setActiveSection(section); setMenuOpen(false) },
+  })
 
   const refresh = async () => {
     setRefreshing(true)
@@ -86,11 +112,11 @@ function App() {
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
       <div className="brand"><div className="brand-mark"><Landmark size={21}/></div><div><strong>LedgerFlow</strong><span>Payment infrastructure</span></div><button className="mobile-close" onClick={() => setMenuOpen(false)}><X/></button></div>
       <nav>
-        <a className="active" href="#overview"><LayoutDashboard/>Overview</a>
-        <a href="#workspace"><Users/>Role workspace</a>
-        <a href="#simulation"><Activity/>Failure laboratory</a>
-        <a href="#payments"><WalletCards/>Payments</a>
-        <a href="#architecture"><Boxes/>Architecture</a>
+        <a href="#overview" {...navigationProps('overview')}><LayoutDashboard/>Overview</a>
+        <a href="#workspace" {...navigationProps('workspace')}><Users/>Role workspace</a>
+        <a href="#simulation" {...navigationProps('simulation')}><Activity/>Failure laboratory</a>
+        <a href="#payments" {...navigationProps('payments')}><WalletCards/>Payments</a>
+        <a href="#architecture" {...navigationProps('architecture')}><Boxes/>Architecture</a>
       </nav>
       <div className="sidebar-section"><span>System status</span><div className="system-row"><i className="health-dot"/><div><strong>All services healthy</strong><small>PostgreSQL · Redis · workers</small></div></div><div className="system-row"><CheckCircle2/><div><strong>Ledger invariant</strong><small>Debits equal credits</small></div></div></div>
       <div className="sidebar-footer"><a href="/api/docs" target="_blank"><BookOpen/>API documentation</a><a href="https://github.com/mikaelllll/Payment-Processing-and-Financial-Ledger-Platform-example" target="_blank"><TerminalSquare/>Source repository</a></div>
