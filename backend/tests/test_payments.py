@@ -144,3 +144,11 @@ def test_read_only_role_cannot_create_payment(client: TestClient):
         "/api/payments", headers={"X-Demo-Role": "auditor"}, json=payment_payload()
     )
     assert response.status_code == 403
+
+
+def test_unknown_payment_ledger_returns_not_found(client: TestClient):
+    response = client.get(
+        "/api/payments/pay_missing/ledger",
+        headers={"X-Demo-Role": "merchant_owner"},
+    )
+    assert response.status_code == 404
