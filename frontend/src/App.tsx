@@ -35,7 +35,11 @@ function App() {
     setLoading(true)
     try { setData(await api.dashboard(role)) } finally { setLoading(false) }
   }, [role])
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    void load().catch(error => {
+      setNotice(error instanceof Error ? error.message : 'Could not load dashboard data')
+    })
+  }, [load])
   useEffect(() => {
     const sectionIds = ['overview', 'workspace', 'simulation', 'payments', 'architecture']
     const updateActiveSection = () => {
@@ -117,7 +121,7 @@ function App() {
   const metrics = data?.metrics
   return <div className="app-shell">
     <aside className={`sidebar ${menuOpen ? 'open' : ''}`}>
-      <div className="brand"><div className="brand-mark"><Landmark size={21}/></div><div><strong>LedgerFlow</strong><span>Payment infrastructure</span></div><button className="mobile-close" onClick={() => setMenuOpen(false)}><X/></button></div>
+      <div className="brand"><div className="brand-mark"><Landmark size={21}/></div><div><strong>LedgerFlow</strong><span>Payment infrastructure</span></div><button className="mobile-close" onClick={() => setMenuOpen(false)} aria-label="Close navigation"><X/></button></div>
       <nav>
         <a href="#overview" {...navigationProps('overview')}><LayoutDashboard/>Overview</a>
         <a href="#workspace" {...navigationProps('workspace')}><Users/>Role workspace</a>
@@ -126,12 +130,12 @@ function App() {
         <a href="#architecture" {...navigationProps('architecture')}><Boxes/>Architecture</a>
       </nav>
       <div className="sidebar-section"><span>System status</span><div className="system-row"><i className="health-dot"/><div><strong>All services healthy</strong><small>PostgreSQL · Redis · workers</small></div></div><div className="system-row"><CheckCircle2/><div><strong>Ledger invariant</strong><small>Debits equal credits</small></div></div></div>
-      <div className="sidebar-footer"><a href="/api/docs" target="_blank"><BookOpen/>API documentation</a><a href="https://github.com/mikaelllll/Payment-Processing-and-Financial-Ledger-Platform-example" target="_blank"><TerminalSquare/>Source repository</a></div>
+      <div className="sidebar-footer"><a href="/api/docs" target="_blank" rel="noreferrer"><BookOpen/>API documentation</a><a href="https://github.com/mikaelllll/Payment-Processing-and-Financial-Ledger-Platform-example" target="_blank" rel="noreferrer"><TerminalSquare/>Source repository</a></div>
     </aside>
     <main>
       <header className="topbar"><button className="menu-button" onClick={() => setMenuOpen(true)}><Menu/></button><div><span className="breadcrumb">Northstar Outdoor / Production simulation</span></div><div className="top-actions"><button className="button secondary" onClick={() => setSeedOpen(true)}><Database size={16}/>Generate demo data</button><div className="role-select"><Users size={17}/><select value={role} onChange={event => setRole(event.target.value as Role)} aria-label="View as role">{roles.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select></div><div className="avatar">{currentRole.label.split(' ').map(word => word[0]).join('').slice(0, 2)}</div></div></header>
       <div className="content">
-        {notice && <div className="notice"><CheckCircle2 size={17}/>{notice}<button onClick={() => setNotice('')}><X size={15}/></button></div>}
+        {notice && <div className="notice" role="status"><CheckCircle2 size={17}/>{notice}<button onClick={() => setNotice('')} aria-label="Dismiss notification"><X size={15}/></button></div>}
         <section className="hero" id="overview"><div><span className="eyebrow">Viewing as {currentRole.label}</span><h1>Money movement you can prove.</h1><p>{currentRole.short}. Explore how LedgerFlow keeps payments correct across retries, processor failures and concurrent operations.</p></div><div className="hero-proof"><Shield/><div><strong>Financial integrity live</strong><span>{metrics?.ledger_balanced ? 'All ledger transactions balance' : 'Checking ledger invariant…'}</span></div></div></section>
         <section className="metrics-grid">
           <article><div className="metric-label">Captured volume <Tooltip text="Sum of captured minor units. Authorizations are excluded because reserved money is not yet merchant revenue."/></div><strong>{metrics ? currency(metrics.volume) : '—'}</strong><span className="trend up"><ArrowUpRight/>Simulated lifetime</span></article>
