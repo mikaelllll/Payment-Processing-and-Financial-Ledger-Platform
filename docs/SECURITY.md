@@ -14,10 +14,10 @@ Role switching is intentionally frictionless so portfolio visitors can inspect e
 - Minimal CORS methods and headers.
 - Non-root API container.
 - No secrets committed; local Compose credentials are explicitly local-only.
+- Generated API-key and webhook secrets are returned once; stored hashes are excluded from later API responses.
 
 ## Required before real-world use
 
 A real payment platform would require audited identity, short-lived sessions, merchant API-key hashing and rotation, KMS-backed secret encryption, network isolation, PCI DSS scope analysis, processor contracts, stronger ledger database permissions, tamper-evident audit export, reconciliation controls, disaster recovery and independent security review.
 
 The simulator must never be used with genuine payment data.
-
