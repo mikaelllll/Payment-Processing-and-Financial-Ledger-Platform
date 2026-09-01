@@ -14,7 +14,10 @@ const request = async <T>(path: string, role: Role, options?: RequestInit): Prom
 
 export const api = {
   dashboard: (role: Role) => request<DashboardData>('/api/dashboard', role),
-  seed: (role: Role, size: string, reset = false) => request<{ created: number }>('/api/demo/seed', role, { method: 'POST', body: JSON.stringify({ size, reset }) }),
+  // Dataset generation belongs to the demo harness rather than the selected
+  // read-only persona. The API still enforces that this call uses an authorized
+  // operations role, while direct auditor/risk mutation requests remain forbidden.
+  seed: (size: string, reset = false) => request<{ created: number }>('/api/demo/seed', 'operations_admin', { method: 'POST', body: JSON.stringify({ size, reset }) }),
   payment: (role: Role, payload: object) => request<SimulationResult>('/api/payments', role, { method: 'POST', body: JSON.stringify(payload) }),
   refund: (role: Role, paymentId: string, payload: object) => request<SimulationResult>(`/api/payments/${paymentId}/refund`, role, { method: 'POST', body: JSON.stringify(payload) }),
   ledger: (role: Role, paymentId: string) => request<{ entries: LedgerEntry[]; balanced: boolean }>(`/api/payments/${paymentId}/ledger`, role),
