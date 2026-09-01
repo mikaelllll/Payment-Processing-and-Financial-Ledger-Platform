@@ -12,7 +12,7 @@ def new_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:16]}"
 
 
-class PaymentStatus(str, enum.Enum):
+class PaymentStatus(enum.StrEnum):
     CREATED = "created"
     PROCESSING = "processing"
     AUTHORIZED = "authorized"
