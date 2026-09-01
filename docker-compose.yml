@@ -55,6 +55,12 @@ services:
       ENVIRONMENT: codespaces
     depends_on:
       api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,time; p='/tmp/ledgerflow-worker-ready'; assert os.path.exists(p) and time.time()-os.path.getmtime(p)<10"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
 
   frontend:
@@ -68,4 +74,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-
