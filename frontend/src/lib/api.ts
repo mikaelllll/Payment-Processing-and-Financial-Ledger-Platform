@@ -1,6 +1,6 @@
 import type { DashboardData, Role, SimulationResult } from '../types'
 
-const errorMessage = (detail: unknown, status: number): string => {
+export const errorMessage = (detail: unknown, status: number): string => {
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) {
     return detail.map(item => {
