@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.eslintcache
+.ruff_cache/
+*.log
+.env
+src/**/*.test.*
