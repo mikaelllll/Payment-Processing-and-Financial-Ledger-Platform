@@ -98,7 +98,7 @@ def test_developer_can_manage_hashed_credentials_and_webhooks(client: TestClient
     )
     assert created_key.status_code == 200
     assert created_key.json()["secret"].startswith("lf_live_")
-    assert "key_hash" in created_key.json()["resource"]
+    assert "key_hash" not in created_key.json()["resource"]
     key_id = created_key.json()["resource"]["id"]
     revoked = client.post(f"/api/api-keys/{key_id}/revoke", headers=headers("merchant_developer"))
     assert revoked.json()["resource"]["status"] == "revoked"
@@ -110,6 +110,11 @@ def test_developer_can_manage_hashed_credentials_and_webhooks(client: TestClient
     )
     assert webhook.status_code == 200
     assert webhook.json()["secret"].startswith("whsec_")
+    assert "secret_hash" not in webhook.json()["resource"]
+
+    workspace = client.get("/api/workspace", headers=headers("merchant_developer")).json()
+    assert all("key_hash" not in key for key in workspace["api_keys"])
+    assert all("secret_hash" not in endpoint for endpoint in workspace["webhook_endpoints"])
 
 
 def test_dispute_evidence_and_resolution_change_financial_state(client: TestClient):
@@ -157,3 +162,20 @@ def test_risk_analyst_can_toggle_rules_with_auditability(client: TestClient):
     )
     assert response.status_code == 200
     assert response.json()["resource"]["enabled"] is (not rule["enabled"])
+
+
+def test_resolved_dispute_rejects_late_evidence(client: TestClient):
+    dispute = client.get("/api/workspace", headers=headers("merchant_owner")).json()["disputes"][0]
+    resolved = client.post(
+        f"/api/disputes/{dispute['id']}/action",
+        headers=headers("risk_analyst"),
+        json={"action": "win", "note": "Evidence accepted"},
+    )
+    assert resolved.status_code == 200
+
+    late_evidence = client.post(
+        f"/api/disputes/{dispute['id']}/action",
+        headers=headers("merchant_owner"),
+        json={"action": "evidence", "note": "Late receipt"},
+    )
+    assert late_evidence.status_code == 409
