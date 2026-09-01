@@ -12,6 +12,7 @@ from .models import (
     Dispute,
     FraudRule,
     LedgerEntry,
+    Merchant,
     OutboxEvent,
     Payment,
     PaymentStatus,
@@ -213,6 +214,13 @@ async def resolve_risk(
 async def create_settlement(
     session: AsyncSession, amount: int, key: str, actor: str
 ) -> tuple[Settlement, list[dict], bool]:
+    # Serialize balance reservations on the merchant row so the balance check
+    # and its ledger posting cannot be interleaved by concurrent settlements.
+    merchant = await session.scalar(
+        select(Merchant).where(Merchant.id == "mer_demo").with_for_update()
+    )
+    if not merchant:
+        raise HTTPException(404, "Merchant not found")
     existing = await session.scalar(
         select(Settlement).where(
             Settlement.merchant_id == "mer_demo", Settlement.idempotency_key == key
@@ -400,6 +408,10 @@ async def dispute_action(
         raise HTTPException(404, "Dispute not found")
     payment = await session.get(Payment, dispute.payment_id)
     if action == "evidence":
+        if dispute.status in {"won", "lost"}:
+            raise HTTPException(409, "Evidence cannot be added to a resolved dispute")
+        if not note.strip():
+            raise HTTPException(422, "Evidence note is required")
         dispute.evidence = [
             *dispute.evidence,
             {"note": note, "submitted_by": actor, "at": datetime.now(UTC).isoformat()},
@@ -635,5 +647,13 @@ async def seed_operations(session: AsyncSession) -> None:
     await session.flush()
 
 
+SENSITIVE_RESPONSE_FIELDS = {"key_hash", "secret_hash"}
+
+
 def serialize_model(item) -> dict:
-    return {column.name: getattr(item, column.name) for column in item.__table__.columns}
+    """Serialize a demo resource without exposing stored credential material."""
+    return {
+        column.name: getattr(item, column.name)
+        for column in item.__table__.columns
+        if column.name not in SENSITIVE_RESPONSE_FIELDS
+    }
