@@ -1,5 +1,22 @@
 import type { DashboardData, Role, SimulationResult } from '../types'
 
+const errorMessage = (detail: unknown, status: number): string => {
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail.map(item => {
+      if (!item || typeof item !== 'object') return String(item)
+      const issue = item as { loc?: unknown[]; msg?: string }
+      const field = issue.loc?.filter(part => part !== 'body').join('.')
+      return `${field ? `${field}: ` : ''}${issue.msg ?? 'Invalid value'}`
+    }).join('; ')
+  }
+  if (detail && typeof detail === 'object') {
+    const issue = detail as { message?: string; msg?: string }
+    return issue.message ?? issue.msg ?? `Request failed (${status})`
+  }
+  return `Request failed (${status})`
+}
+
 const request = async <T>(path: string, role: Role, options?: RequestInit): Promise<T> => {
   const response = await fetch(path, {
     ...options,
@@ -7,7 +24,7 @@ const request = async <T>(path: string, role: Role, options?: RequestInit): Prom
   })
   if (!response.ok) {
     const body = await response.json().catch(() => ({ detail: 'Unexpected request failure' }))
-    throw new Error(body.detail ?? `Request failed (${response.status})`)
+    throw new Error(errorMessage(body.detail, response.status))
   }
   return response.json() as Promise<T>
 }
