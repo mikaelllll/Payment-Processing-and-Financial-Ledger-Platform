@@ -24,6 +24,7 @@ function App() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null)
   const [seedOpen, setSeedOpen] = useState(false)
+  const [seeding, setSeeding] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeSection, setActiveSection] = useState('overview')
   const [loading, setLoading] = useState(true)
@@ -98,12 +99,18 @@ function App() {
     return buckets
   }, [data])
 
-  const seed = async (size: string, reset = false) => {
+  const seed = async (size: string) => {
+    if (seeding) return
+    setSeeding(true)
     try {
-      const result = await api.seed(role, size, reset)
-      setNotice(`${result.created} deterministic records added. Every financial posting remains balanced.`)
+      const result = await api.seed(size, true)
+      setNotice(`Dataset replaced with ${result.created} deterministic payments. Every financial posting remains balanced.`)
       setSeedOpen(false); await load()
-    } catch (error) { setNotice(error instanceof Error ? error.message : 'Could not generate data') }
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Could not generate data')
+    } finally {
+      setSeeding(false)
+    }
   }
 
   const currentRole = roles.find(item => item.value === role)!
@@ -143,7 +150,7 @@ function App() {
       </div>
     </main>
     {selectedPayment && <LedgerDrawer payment={selectedPayment} role={role} onClose={() => setSelectedPayment(null)}/>} 
-    {seedOpen && <div className="modal-backdrop"><section className="seed-dialog"><header><div><span className="eyebrow">Deterministic dataset</span><h2>Populate the payment platform</h2></div><button className="icon-button" onClick={() => setSeedOpen(false)}><X/></button></header><p>Create consistent payments, refunds and balanced ledger entries for exploring every dashboard perspective.</p><div className="seed-options"><button onClick={() => seed('small')}><strong>Small</strong><span>12 payment records</span></button><button onClick={() => seed('medium')}><strong>Medium</strong><span>60 payment records</span></button><button onClick={() => seed('large')}><strong>Large</strong><span>250 payment records</span></button></div><button className="button danger" onClick={() => seed('medium', true)}>Reset and generate medium dataset</button></section></div>}
+    {seedOpen && <div className="modal-backdrop"><section className="seed-dialog"><header><div><span className="eyebrow">Deterministic dataset</span><h2>Populate the payment platform</h2></div><button className="icon-button" onClick={() => setSeedOpen(false)} disabled={seeding}><X/></button></header><p>Selecting a dataset replaces the current simulation data, producing the same complete and balanced environment every time.</p><div className="seed-options"><button disabled={seeding} onClick={() => seed('small')}><strong>Small</strong><span>12 payment records</span></button><button disabled={seeding} onClick={() => seed('medium')}><strong>Medium</strong><span>60 payment records</span></button><button disabled={seeding} onClick={() => seed('large')}><strong>Large</strong><span>250 payment records</span></button></div>{seeding && <div className="seed-progress"><RefreshCw className="spinning" size={16}/>Replacing dataset and verifying ledger entries…</div>}</section></div>}
   </div>
 }
 
