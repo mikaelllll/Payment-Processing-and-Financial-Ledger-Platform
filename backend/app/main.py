@@ -145,6 +145,8 @@ async def payment_ledger(
     session: AsyncSession = Depends(get_session),
 ) -> dict:
     require_permission(role, "ledger:read" if role == "auditor" else "payments:read")
+    if not await session.get(Payment, payment_id):
+        raise HTTPException(status_code=404, detail="Payment not found")
     entries = (
         await session.scalars(
             select(LedgerEntry)
@@ -170,7 +172,10 @@ async def payment_ledger(
 
 
 @app.get("/api/simulations")
-async def simulations(session: AsyncSession = Depends(get_session)) -> dict:
+async def simulations(
+    role: str = Depends(current_role), session: AsyncSession = Depends(get_session)
+) -> dict:
+    require_permission(role, "audit:read" if role == "auditor" else "payments:read")
     runs = (
         await session.scalars(
             select(SimulationRun).order_by(SimulationRun.created_at.desc()).limit(20)
