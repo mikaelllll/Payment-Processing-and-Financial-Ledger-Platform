@@ -2,7 +2,7 @@
 
 ## Automated startup
 
-The dev container installs Docker support and executes `.devcontainer/setup.sh`. Docker Compose builds and health-checks PostgreSQL, Redis, API, worker and frontend. Subsequent Codespace starts run `docker compose up -d`.
+The dev container installs Docker support and executes `.devcontainer/setup.sh`. Docker Compose builds and health-checks PostgreSQL, Redis, API, the worker heartbeat and frontend. Subsequent Codespace starts run the same idempotent readiness workflow.
 
 Once every Compose health check passes, startup prints the correct forwarded URLs and attempts to open the frontend. Print the URLs again at any time with:
 
@@ -27,7 +27,7 @@ docker compose up --build --detach --wait
 
 ## Reset demonstration storage
 
-Prefer the application’s deterministic reset button for normal demonstrations. To completely remove local PostgreSQL and Redis volumes:
+Selecting Small, Medium or Large in the application replaces the current simulation with a deterministic dataset. To completely remove local PostgreSQL and Redis volumes:
 
 ```bash
 docker compose down --volumes
