@@ -16,6 +16,9 @@ Tests prioritize financial invariants and failure paths:
 - Developer credentials are returned once and persisted only as hashes.
 - Dispute evidence and outcomes produce auditable balanced accounting effects.
 - Processor controls remain restricted to operations administrators.
+- Credential hashes are never serialized into API responses.
+- Dataset sizes can replace one another deterministically in either direction.
+- Invalid payment identifiers and resolved-case transitions are rejected.
 
 Run backend verification:
 
@@ -32,8 +35,10 @@ Run frontend verification:
 
 ```bash
 cd frontend
-npm install
+npm ci
+npm run lint
+npm test
 npm run build
 ```
 
-GitHub Actions runs backend lint/tests, strict TypeScript production build, Compose validation and image builds on pushes and pull requests. It can also be started manually.
+GitHub Actions runs backend lint/tests, frontend lint/tests, a strict TypeScript production build, Compose validation and image builds on pushes and pull requests. It can also be started manually.
