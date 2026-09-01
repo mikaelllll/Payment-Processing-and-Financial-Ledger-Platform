@@ -31,7 +31,11 @@ export function RoleWorkspace({ role, refreshDashboard }: { role: Role; refreshD
     catch { return false }
   })()
   const load = useCallback(async () => { setData(await api.workspace(role)) }, [role])
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    void load().catch(error => {
+      setMessage(error instanceof Error ? error.message : 'Could not load workspace data')
+    })
+  }, [load])
   const refreshWorkspace = async () => {
     setBusy(true); setMessage(''); setSteps([])
     try {
@@ -45,7 +49,7 @@ export function RoleWorkspace({ role, refreshDashboard }: { role: Role; refreshD
   }
   const run = async (operation: () => Promise<Item>, success: string) => {
     setBusy(true); setMessage('')
-    try { const result = await operation(); setSteps((result.steps as SimulationStep[]) ?? []); setMessage(result.secret ? `${success} One-time secret: ${result.secret}` : success); await load(); refreshDashboard() }
+    try { const result = await operation(); setSteps((result.steps as SimulationStep[]) ?? []); setMessage(result.secret ? `${success} One-time secret: ${result.secret}` : success); await Promise.all([load(), Promise.resolve(refreshDashboard())]) }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Operation failed') }
     finally { setBusy(false) }
   }
