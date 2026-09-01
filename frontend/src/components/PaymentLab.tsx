@@ -13,7 +13,7 @@ const scenarios = [
   { value: 'high_risk', label: 'High-risk review', detail: 'Authorization succeeds while capture remains blocked for manual review.' },
 ]
 
-export function PaymentLab({ role, onComplete }: { role: Role; onComplete: () => void }) {
+export function PaymentLab({ role, onComplete }: { role: Role; onComplete: () => void | Promise<void> }) {
   const [scenario, setScenario] = useState('success')
   const [amount, setAmount] = useState('14990')
   const [key, setKey] = useState(() => `order-${Date.now()}`)
@@ -31,7 +31,7 @@ export function PaymentLab({ role, onComplete }: { role: Role; onComplete: () =>
     try {
       if (!formValid) return
       const response = await api.payment(role, { merchant_id: 'mer_demo', amount: parsedAmount, currency: 'BRL', customer_reference: 'customer-live-demo', idempotency_key: key.trim(), scenario, capture_method: 'automatic' })
-      setResult(response); onComplete()
+      setResult(response); await Promise.resolve(onComplete())
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Simulation failed') }
     finally { setLoading(false) }
   }
