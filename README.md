@@ -59,6 +59,23 @@ processors journal     outbox delivery
 
 Money is stored as integer minor units. Financial entries are append-only and accepted only when total debits equal total credits. External timeouts are classified by whether submission occurred, because retrying an ambiguous result through another processor can charge a customer twice.
 
+## Key engineering decisions
+
+- **Represent money as integer minor units:** financial calculations avoid binary floating-point rounding errors.
+- **Use an append-only double-entry ledger:** every accepted transaction must balance total debits and credits, preserving an auditable accounting history.
+- **Make payment requests idempotent:** merchant keys bind retries to the original result so network repetition cannot create a second logical charge.
+- **Distinguish pre-submission and ambiguous failures:** requests known not to have reached a processor may be retried safely; uncertain outcomes require reconciliation before another charge attempt.
+- **Publish through a transactional outbox:** payment state and events commit atomically before the worker delivers them through Redis Streams.
+- **Model role-specific workspaces:** operational permissions and workflows differ by role rather than being cosmetic dashboard filters.
+
+## Trade-offs
+
+- Strong idempotency requires retaining request fingerprints and prior responses, increasing storage and lifecycle complexity.
+- An immutable ledger corrects mistakes through compensating entries instead of updates, producing more records but preserving history.
+- Asynchronous outbox delivery is reliable but introduces eventual consistency between a committed payment and downstream consumers.
+- Simulated processors make failure modes deterministic and safe to demonstrate, but do not reproduce every behavior of real acquiring networks.
+- The project demonstrates financial invariants and recovery patterns; real processing would additionally require PCI DSS controls, managed secrets, compliance review, and external reconciliation.
+
 ## Documentation
 
 | Document | Contents |
