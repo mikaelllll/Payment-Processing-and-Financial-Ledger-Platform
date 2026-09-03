@@ -4,6 +4,10 @@ LedgerFlow is a production-style payment infrastructure simulation built to make
 
 The project is intentionally **not connected to real payment methods or money**. It is an engineering portfolio system for exploring correctness, failure recovery, financial accounting, and asynchronous integration patterns.
 
+## Application preview
+
+[![LedgerFlow payment and financial ledger dashboard](docs/images/application-preview.webp)](docs/images/application-preview.webp)
+
 ## Run in GitHub Codespaces
 
 1. Select **Code → Codespaces → Create codespace on main**.
